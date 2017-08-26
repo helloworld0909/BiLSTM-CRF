@@ -13,6 +13,7 @@ import numpy as np
 import logging
 
 from .keraslayers.ChainCRF import ChainCRF
+from .keraslayers.ChainCRF import create_custom_objects
 from util import preprocess
 
 class BiLSTMCRF(object):
@@ -106,3 +107,6 @@ class BiLSTMCRF(object):
         model.summary()
 
         return model
+
+def load_model(filepath):
+    return keras.models.load_model(filepath, custom_objects=create_custom_objects())

@@ -1,10 +1,11 @@
 import logging
 import random
-from keras.models import load_model
 from sklearn.model_selection import train_test_split
 from neuralnets.BiLSTMCRF import BiLSTMCRF
+from neuralnets.BiLSTMCRF import load_model
 from neuralnets.keraslayers.ChainCRF import create_custom_objects
 from util.data import Data
+
 
 # :: Logging level ::
 logger = logging.getLogger()
@@ -27,5 +28,5 @@ model = modelWrapper.buildModel()
 model.fit(X_train, y_train, epochs=5, validation_split=0.1, shuffle=True)
 model.save('model.h5')
 
-model = load_model('model.h5', custom_objects=create_custom_objects())
+model = load_model('model.h5')
 model.summary()
