@@ -16,7 +16,6 @@ class Data(object):
     tokenIdx2charVector = []
 
     sentences = None
-    charSentences = None
     labels = None
     features = None
 
@@ -59,13 +58,11 @@ class Data(object):
     def loadCoNLL(self, filePath):
 
         sentences = []
-        charSentences = []
         features = defaultdict(list) #TODO: load features
         labels = []
 
         with open(filePath, 'r', encoding='utf-8') as inputFile:
             sentenceTmp = []
-            charSentenceTmp = []
             labelTmp = []
             for line in inputFile:
                 line = line.strip()
@@ -92,11 +89,6 @@ class Data(object):
         # Pad sentence to the longest length
         self.maxSentenceLen = len(max(sentences, key=len))
         self.sentences = pad_sequences(sentences, maxlen=self.maxSentenceLen)
-
-        # Pad char to the length of longest word
-        for idx, seq in enumerate(charSentences):
-            charSentences[idx] = pad_sequences(seq)
-        self.charSentences = charSentences
 
         # Transform labels to one hot encoding
         self.labels = []
