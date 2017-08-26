@@ -93,7 +93,7 @@ class Data(object):
         # Transform labels to one hot encoding
         self.labels = []
         for seq in pad_sequences(labels):
-            self.labels.append(to_categorical(seq))
+            self.labels.append(to_categorical(seq, num_classes=self.labelDim))
         self.labels = np.asarray(self.labels)
 
 
