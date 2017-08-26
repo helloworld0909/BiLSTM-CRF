@@ -64,3 +64,15 @@ def featureLabelIndex(filePathList):
                         label2idx[label] = len(label2idx)
 
     return feature2idx, label2idx
+
+def selectPaddingLength(lengthDistribution, ratio=0.99):
+    totalCount = sum(lengthDistribution.values())
+    threshold = int(totalCount * ratio)
+    countSum = 0
+    selectedLength = 0
+    for length, count in sorted(lengthDistribution.items(), key=lambda kv: kv[0]):
+        countSum += count
+        selectedLength = length
+        if countSum >= threshold:
+            break
+    return selectedLength

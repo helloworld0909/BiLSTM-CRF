@@ -18,7 +18,7 @@ from util import preprocess
 
 class BiLSTMCRF(object):
 
-    params = {'wordEmbeddingDim': 100, 'charEmbeddingDim': 10, 'lstmOutDim': 100}
+    params = {'wordEmbeddingDim': 100, 'charEmbeddingDim': 10, 'lstmOutDim': 100, 'filters': 15}
 
     vocabSize = 0
     labelDim = 0
@@ -88,8 +88,7 @@ class BiLSTMCRF(object):
             name='char_embedding'
         )(char_input)
 
-        char = TimeDistributed(Conv1D(filters=25, kernel_size=3, padding='same'), name='Conv1D')(char)
-        char = TimeDistributed(GlobalMaxPooling1D(), name='MaxPooling')(char)
+        char = TimeDistributed(LSTM(10, return_sequences=False), name='charLSTM')(char)
 
         merge_layer = concatenate([word, char])
 

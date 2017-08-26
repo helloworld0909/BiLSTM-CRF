@@ -19,18 +19,20 @@ class Data(object):
     labels = None
     features = None
 
-    def __init__(self, inputPathList):
+    def __init__(self, inputPathList, freqCutOff=50):
 
         tokenFreq = preprocess.tokenFrequency(inputPathList)
-        for token in tokenFreq.keys():
-            if token not in self.token2idx:
+        for token, freq in tokenFreq.items():
+            if token not in self.token2idx and freq >= freqCutOff:
                 self.token2idx[token] = len(self.token2idx)
         self.feature2idx, self.label2idx = preprocess.featureLabelIndex(inputPathList)
         self.char2idx = preprocess.getChar2idx()
         self.maxTokenLen = len(max(self.token2idx.keys(), key=len))
         logging.info('Max token length: ' + str(self.maxTokenLen))
 
-        self.maxSentenceLen = 0
+        sentenceLengthDistribution = preprocess.sentenceLengthDistribution(inputPathList)
+        self.maxSentenceLen = preprocess.selectPaddingLength(sentenceLengthDistribution, ratio=0.99)
+        logging.info('Max sentence length: ' + str(self.maxSentenceLen))
 
         self.vocabSize = len(self.token2idx)
         logging.info('Vocabulary size: ' + str(self.vocabSize))
@@ -57,44 +59,35 @@ class Data(object):
 
     def loadCoNLL(self, filePath):
 
-        sentences = []
+        sentences = [[]]
         features = defaultdict(list) #TODO: load features
-        labels = []
+        labels = [[]]
 
         with open(filePath, 'r', encoding='utf-8') as inputFile:
-            sentenceTmp = []
-            labelTmp = []
+
             for line in inputFile:
                 line = line.strip()
                 if not line:
-                    sentences.append(sentenceTmp)
-                    labels.append(labelTmp)
+                    sentences.append([])
+                    labels.append([])
 
-                    sentenceTmp = []
-                    labelTmp = []
                 else:
                     data_tuple = line.split('\t')
 
                     token = data_tuple[0]
-                    tokenIdx = self.token2idx[token]
-                    sentenceTmp.append(tokenIdx)
-
+                    tokenIdx = self.token2idx.get(token, 1) # 1 for UNKNOWN
+                    sentences[-1].append(tokenIdx)
 
                     labelIdx = self.label2idx[data_tuple[-1]]
-                    labelTmp.append(labelIdx)
-
-            sentences.append(sentenceTmp)
-            labels.append(labelTmp)
+                    labels[-1].append(labelIdx)
 
         # Pad sentence to the longest length
-        self.maxSentenceLen = len(max(sentences, key=len))
         self.sentences = pad_sequences(sentences, maxlen=self.maxSentenceLen)
 
+        del sentences
+
         # Transform labels to one hot encoding
-        self.labels = []
-        for seq in pad_sequences(labels):
-            self.labels.append(to_categorical(seq, num_classes=self.labelDim))
-        self.labels = np.asarray(self.labels)
+        self.labels = np.array(list(map(lambda seq: to_categorical(seq, num_classes=self.labelDim), pad_sequences(labels, maxlen=self.maxSentenceLen))))
 
 
 

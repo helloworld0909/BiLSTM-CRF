@@ -9,7 +9,7 @@ from util.data import Data
 
 # :: Logging level ::
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 inputPath = 'data/family/train.txt'
 
@@ -28,5 +28,4 @@ model = modelWrapper.buildModel()
 model.fit(X_train, y_train, epochs=5, validation_split=0.1, shuffle=True)
 model.save('model.h5')
 
-model = load_model('model.h5')
-model.summary()
+y_predict = model.predict(x_test)
