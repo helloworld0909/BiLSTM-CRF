@@ -87,7 +87,7 @@ class BiLSTMCRF(object):
             name='char_embedding'
         )(char_input)
 
-        char = TimeDistributed(Conv1D(filters=25, kernel_size=3, border_mode='same'), name='Conv1D')(char)
+        char = TimeDistributed(Conv1D(filters=25, kernel_size=3, padding='same'), name='Conv1D')(char)
         char = TimeDistributed(GlobalMaxPooling1D(), name='MaxPooling')(char)
 
         merge_layer = concatenate([word, char])

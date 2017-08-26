@@ -312,6 +312,9 @@ class ChainCRF(Layer):
         assert input_shape and len(input_shape) == 3
         return (input_shape[0], input_shape[1], input_shape[2])
 
+    def compute_output_shape(self, input_shape):
+        return self.get_output_shape_for(input_shape)
+
     def compute_mask(self, input, mask=None):
         if mask is not None:
             return K.any(mask, axis=1)
