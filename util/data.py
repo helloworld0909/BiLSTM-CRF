@@ -14,12 +14,13 @@ class Data(object):
     feature2idx = defaultdict(lambda : {'PADDING': 0})
     label2idx = {'PADDING': 0}
     tokenIdx2charVector = []
+    wordEmbedding = []
 
     sentences = None
     labels = None
     features = None
 
-    def __init__(self, inputPathList, freqCutOff=50):
+    def __init__(self, inputPathList, freqCutOff=10):
 
         tokenFreq = preprocess.tokenFrequency(inputPathList)
         for token, freq in tokenFreq.items():
@@ -41,6 +42,7 @@ class Data(object):
         logging.info('Label dim: ' + str(self.labelDim))
 
         self.initToken2charVector()
+        self.initWordEmbedding()
 
     def initToken2charVector(self):
         tokenIdx2charVector = []
@@ -54,6 +56,19 @@ class Data(object):
         self.tokenIdx2charVector = np.asarray(pad_sequences(tokenIdx2charVector))
         logging.debug(self.tokenIdx2charVector.shape)
 
+    def initWordEmbedding(self, dim=100):
+        """        
+        The tokens in the word embedding matrix are uncased 
+        """
+        word2vector = preprocess.loadWordEmbedding('data/glove.6B.100d.txt', dim=dim)
+        for token, idx in sorted(self.token2idx.items(), key=lambda kv: kv[1]):
+            if idx >= 2:
+                token = token.lower()
+            vector = word2vector.get(token, np.random.uniform(-0.25, 0.25, dim))
+            self.wordEmbedding.append(vector)
+        self.wordEmbedding = np.asarray(self.wordEmbedding)
+        logging.debug(self.wordEmbedding[0])
+        logging.debug(self.wordEmbedding.shape)
 
 
 

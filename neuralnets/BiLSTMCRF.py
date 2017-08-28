@@ -30,6 +30,7 @@ class BiLSTMCRF(object):
 
     charEmbedding = []
     tokenIdx2charVector = []
+    wordEmbedding = []
 
 
     def __init__(self, data, params=None):
@@ -56,17 +57,20 @@ class BiLSTMCRF(object):
         self.maxTokenLen = data.maxTokenLen
         self.maxSentenceLen = data.maxSentenceLen
         self.tokenIdx2charVector = data.tokenIdx2charVector
+        self.wordEmbedding = data.wordEmbedding
 
     def buildModel(self):
 
         word_input = Input((self.maxSentenceLen, ), name='word_input')
+        word_input_masking = Masking(mask_value=0, input_shape=(self.maxSentenceLen, ))(word_input)
         word = Embedding(
             input_dim=self.vocabSize,
             output_dim=self.params['wordEmbeddingDim'],
             input_length=self.maxSentenceLen,
+            weights=[self.wordEmbedding],
             trainable=True,
             name='word_embedding'
-        )(word_input)
+        )(word_input_masking)
 
 
         char_input = Embedding(
@@ -76,7 +80,7 @@ class BiLSTMCRF(object):
             weights=[self.tokenIdx2charVector],
             trainable=False,
             name='word_to_char'
-        )(word_input)
+        )(word_input_masking)
 
         char = TimeDistributed(Embedding(
                 input_dim=len(self.charSet),
@@ -98,10 +102,9 @@ class BiLSTMCRF(object):
 
         crf = ChainCRF()
         output = crf(hidden)
-        loss = crf.sparse_loss
 
         model = Model(inputs=word_input, outputs=output)
-        model.compile(optimizer='adam', loss=loss, metrics=['accuracy'])
+        model.compile(optimizer='adam', loss=crf.sparse_loss, metrics=['sparse_categorical_accuracy'])
         model.summary()
 
         return model
