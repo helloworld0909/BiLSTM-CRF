@@ -87,7 +87,7 @@ class Data(object):
         del sentences
 
         # Transform labels to one hot encoding
-        self.labels = np.array(list(map(lambda seq: to_categorical(seq, num_classes=self.labelDim), pad_sequences(labels, maxlen=self.maxSentenceLen))))
+        self.labels = np.expand_dims(pad_sequences(labels, maxlen=self.maxSentenceLen), -1)
 
 
 

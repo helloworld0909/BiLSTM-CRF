@@ -83,7 +83,6 @@ class BiLSTMCRF(object):
                 output_dim=self.params['charEmbeddingDim'],
                 weights=[self.charEmbedding],
                 trainable=True,
-                mask_zero=True
             ),
             name='char_embedding'
         )(char_input)
@@ -99,7 +98,7 @@ class BiLSTMCRF(object):
 
         crf = ChainCRF()
         output = crf(hidden)
-        loss = crf.loss
+        loss = crf.sparse_loss
 
         model = Model(inputs=word_input, outputs=output)
         model.compile(optimizer='adam', loss=loss, metrics=['accuracy'])
