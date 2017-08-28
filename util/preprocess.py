@@ -1,6 +1,7 @@
 import os
 import logging
 from collections import defaultdict
+import numpy as np
 
 
 def getCharSet():
@@ -76,3 +77,13 @@ def selectPaddingLength(lengthDistribution, ratio=0.99):
         if countSum >= threshold:
             break
     return selectedLength
+
+def loadWordEmbedding(filepath, dim=100):
+    word2vector = {'PADDING': np.zeros(dim), 'UNKNOWN': np.random.uniform(-0.25, 0.25, 100)}
+    with open(filepath, 'r', encoding='utf-8') as embeddingFile:
+        for line in embeddingFile:
+            data_tuple = line.rstrip().split(' ')
+            token = data_tuple[0]
+            vector = data_tuple[1:]
+            word2vector[token] = vector
+    return word2vector
