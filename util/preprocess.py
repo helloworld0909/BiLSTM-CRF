@@ -30,6 +30,14 @@ def sentenceLengthDistribution(filePathList):
 
     return distribution
 
+def tokenLengthDistribution(token2idx):
+    distribution = defaultdict(int)
+    for token in token2idx.keys():
+        tokenLength = len(token)
+        distribution[tokenLength] += 1
+    return distribution
+
+
 def tokenFrequency(filePathList):
     tokenFreq = defaultdict(int)
 

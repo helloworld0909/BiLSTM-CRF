@@ -20,7 +20,7 @@ class Data(object):
     labels = None
     features = None
 
-    def __init__(self, inputPathList, freqCutOff=10):
+    def __init__(self, inputPathList, freqCutOff=1):
 
         tokenFreq = preprocess.tokenFrequency(inputPathList)
         for token, freq in tokenFreq.items():
@@ -28,7 +28,9 @@ class Data(object):
                 self.token2idx[token] = len(self.token2idx)
         self.feature2idx, self.label2idx = preprocess.featureLabelIndex(inputPathList)
         self.char2idx = preprocess.getChar2idx()
-        self.maxTokenLen = len(max(self.token2idx.keys(), key=len))
+
+        tokenLengthDistribution = preprocess.tokenLengthDistribution(self.token2idx)
+        self.maxTokenLen = preprocess.selectPaddingLength(tokenLengthDistribution, ratio=0.99)
         logging.info('Max token length: ' + str(self.maxTokenLen))
 
         sentenceLengthDistribution = preprocess.sentenceLengthDistribution(inputPathList)
@@ -53,7 +55,7 @@ class Data(object):
                 charVector = [0]  # PADDING
             tokenIdx2charVector.append(charVector)
 
-        self.tokenIdx2charVector = np.asarray(pad_sequences(tokenIdx2charVector))
+        self.tokenIdx2charVector = np.asarray(pad_sequences(tokenIdx2charVector, maxlen=self.maxTokenLen))
         logging.debug(self.tokenIdx2charVector.shape)
 
     def initWordEmbedding(self, dim=100):
