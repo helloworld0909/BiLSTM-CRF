@@ -18,7 +18,7 @@ from util import preprocess
 
 class BiLSTMCRF(object):
 
-    params = {'wordEmbeddingDim': 100, 'charEmbeddingDim': 10, 'lstmOutDim': 100, 'filters': 15}
+    params = {'wordEmbeddingDim': 100, 'charEmbeddingDim': 25, 'lstmOutDim': 100, 'filters': 15}
 
     vocabSize = 0
     labelDim = 0
@@ -68,7 +68,7 @@ class BiLSTMCRF(object):
             output_dim=self.params['wordEmbeddingDim'],
             input_length=self.maxSentenceLen,
             weights=[self.wordEmbedding],
-            trainable=True,
+            trainable=False,
             name='word_embedding'
         )(word_input_masking)
 

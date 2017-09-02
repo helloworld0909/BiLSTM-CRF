@@ -30,7 +30,7 @@ model = modelWrapper.buildModel()
 history = metricHistory(X_test, y_test)
 history.set_model(model)
 history.set_params(params={'label2idx': data.label2idx})
-model.fit(X_train, y_train, epochs=20, batch_size=128, shuffle=True, callbacks=[history])
+model.fit(X_train, y_train, epochs=20, batch_size=64, shuffle=True, callbacks=[history])
 model.save('model.h5')
 
 y_predict = model.predict(X_test)
