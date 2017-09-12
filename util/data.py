@@ -1,5 +1,6 @@
 import os
 import logging
+import csv
 from collections import defaultdict
 import numpy as np
 from keras.preprocessing.sequence import pad_sequences
@@ -20,10 +21,10 @@ class Data(object):
     labels = None
     features = None
 
-    def __init__(self, inputPathList, freqCutOff=1):
+    def __init__(self, inputPathList, testPath, freqCutOff=1):
 
-        tokenFreq = preprocess.tokenFrequency(inputPathList)
-        for token, freq in tokenFreq.items():
+        tokenFreq = preprocess.tokenFrequency(inputPathList + [testPath])
+        for token, freq in sorted(tokenFreq.items(), key=lambda kv: kv[0]):
             if token not in self.token2idx and freq >= freqCutOff:
                 self.token2idx[token] = len(self.token2idx)
         self.feature2idx, self.label2idx = preprocess.featureLabelIndex(inputPathList)
@@ -33,8 +34,8 @@ class Data(object):
         self.maxTokenLen = preprocess.selectPaddingLength(tokenLengthDistribution, ratio=0.99)
         logging.info('Max token length: ' + str(self.maxTokenLen))
 
-        sentenceLengthDistribution = preprocess.sentenceLengthDistribution(inputPathList)
-        self.maxSentenceLen = preprocess.selectPaddingLength(sentenceLengthDistribution, ratio=0.99)
+        sentenceLengthDistribution = preprocess.sentenceLengthDistribution(inputPathList + [testPath])
+        self.maxSentenceLen = preprocess.selectPaddingLength(sentenceLengthDistribution, ratio=0.999)
         logging.info('Max sentence length: ' + str(self.maxSentenceLen))
 
         self.vocabSize = len(self.token2idx)
@@ -107,6 +108,65 @@ class Data(object):
         self.labels = np.expand_dims(pad_sequences(labels, maxlen=self.maxSentenceLen), -1)
 
 
+    def predict(self, model, testPath, outputPath):
+
+        logging.info('Begin predict...')
+
+        idx2token = {v: k for k,v in self.token2idx.items()}
+        idx2label = {v: k for k, v in self.label2idx.items()}
+        with open(testPath, 'r', encoding='utf-8') as inputFile:
+            with open(outputPath, 'w', encoding='utf-8') as outputFile:
+
+                reader = csv.reader(inputFile, delimiter=',', quotechar='"')
+                _ = reader.__next__()
+
+                sentences = defaultdict(list)
+                for row in reader:
+                    sentID = int(row[0])
+                    sentences[sentID].append(row)
+
+
+                for sentID, sent in sorted(sentences.items(), key=lambda kv: kv[0]):
+                    rawSentence = list(map(lambda t: t[-1], sent))
+
+                    x, y = self.predictRaw(model, rawSentence)
+                    tokenID = 0
+
+                    for tokenIdx, labelIdx in zip(x, y):
+                        if tokenIdx != 0:
+                            token = idx2token[tokenIdx]
+                            label = idx2label[labelIdx]
+                            outputFile.write('{}\t{}\t{}\t{}\n'.format(sentID, tokenID, label, token))
+                            tokenID += 1
+
+
+    def predictRaw(self, model, rawSent):
+
+        sentence = np.asarray(tuple(map(lambda t: self.token2idx.get(t, 1), rawSent)))
+        sentLen = len(rawSent)
+        maxLen = self.maxSentenceLen
+
+        if sentLen > maxLen:
+
+            sentence_parts = []
+            for idx in range(sentLen // maxLen):
+                sentence_parts.append(np.asarray(sentence[idx * maxLen:(idx + 1) * maxLen]))
+            if sentLen % maxLen != 0:
+                sentence_parts.append(np.asarray(sentence[sentLen // maxLen * maxLen:]))
+            sentence_parts = pad_sequences(sentence_parts, maxlen=maxLen)
+            y_parts = model.predict_on_batch(sentence_parts)
+
+            x = sentence_parts.flatten()
+            y = y_parts.argmax(axis=-1).flatten()
+
+        else:
+            sentence = pad_sequences([sentence], maxlen=maxLen)
+            y_predict = model.predict_on_batch(sentence)
+
+            x = sentence.flatten()
+            y = y_predict.argmax(axis=-1).flatten()
+
+        return x, y
 
 
 
