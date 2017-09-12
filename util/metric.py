@@ -1,13 +1,4 @@
-def categorical_metric(y_test, y_predict, label2idx):
-
-    def idxSeq2label(idxSeq, lookup):
-        return list(map(lambda idx: lookup[idx], idxSeq))
-
-    def transform2label(y, lookup):
-        y_label = []
-        for seq in y:
-            y_label.append(idxSeq2label(seq, lookup))
-        return y_label
+def binary_metric(y_test, y_predict, label2idx):
 
     def f1(label_tags, predict_tags, keyIdx=2):
         label_count = 0
@@ -33,4 +24,17 @@ def categorical_metric(y_test, y_predict, label2idx):
 
     return f1(y_test, y_predict, keyIdx=keyIdx)
 
+def categorical_metric(y_test, y_predict):
 
+    def acc(label_tags, predict_tags):
+        total_count = 0
+        correct_count = 0
+        for label_tag, predict_tag in zip(label_tags, predict_tags):
+            for label, predict in zip(label_tag, predict_tag):
+                if label != 0:
+                    total_count += 1
+                    if label == predict:
+                        correct_count += 1
+        return correct_count / float(total_count)
+
+    return acc(y_test, y_predict)
