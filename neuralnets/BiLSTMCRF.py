@@ -95,7 +95,7 @@ class BiLSTMCRF(object):
 
         merge_layer = concatenate([word, char])
 
-        bilstm = Bidirectional(LSTM(self.params['lstmOutDim'], return_sequences=True), name='BiLSTM')(merge_layer)
+        bilstm = Bidirectional(LSTM(self.params['lstmOutDim'], return_sequences=True, dropout=0.25, recurrent_dropout=0.25), name='BiLSTM')(merge_layer)
 
         hidden = TimeDistributed(Dense(self.labelDim, activation=None), name='hidden_layer')(bilstm)
 
@@ -104,7 +104,7 @@ class BiLSTMCRF(object):
         output = crf(hidden)
 
         model = Model(inputs=word_input, outputs=output)
-        model.compile(optimizer='adam', loss=crf.sparse_loss, metrics=['sparse_categorical_accuracy'])
+        model.compile(optimizer='adam', loss=crf.sparse_loss)
         model.summary()
 
         return model
