@@ -19,7 +19,7 @@ def sentenceLengthDistribution(filePathList):
     for filePath in filePathList:
         with open(filePath, 'r', encoding='utf-8') as inputFile:
             for line in inputFile:
-                line = line.strip()
+                line = line.strip('\n')
                 if line:
                     sentenceLength += 1
                 else:
@@ -44,7 +44,7 @@ def tokenFrequency(filePathList):
     for filePath in filePathList:
         with open(filePath, 'r', encoding='utf-8') as inputFile:
             for line in inputFile:
-                line = line.strip()
+                line = line.strip('\n')
                 if not line:
                     continue
                 else:
@@ -59,7 +59,7 @@ def featureLabelIndex(filePathList):
     for filePath in filePathList:
         with open(filePath, 'r', encoding='utf-8') as inputFile:
             for line in inputFile:
-                line = line.strip()
+                line = line.strip('\n')
                 if not line:
                     continue
                 else:
@@ -90,7 +90,7 @@ def loadWordEmbedding(filepath, dim=100):
     word2vector = {'PADDING': np.zeros(dim), 'UNKNOWN': np.random.uniform(-0.25, 0.25, 100)}
     with open(filepath, 'r', encoding='utf-8') as embeddingFile:
         for line in embeddingFile:
-            data_tuple = line.rstrip().split(' ')
+            data_tuple = line.rstrip('\n').split(' ')
             token = data_tuple[0]
             vector = data_tuple[1:]
             word2vector[token] = vector
