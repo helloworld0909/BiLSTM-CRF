@@ -84,7 +84,7 @@ class Data(object):
         with open(filePath, 'r', encoding='utf-8') as inputFile:
 
             for line in inputFile:
-                line = line.strip()
+                line = line.strip('\n')
                 if not line:
                     sentences.append([])
                     labels.append([])
@@ -169,4 +169,17 @@ class Data(object):
         return x, y
 
 
+    @staticmethod
+    def validPrediction(predictPath, testPath):
+        with open(testPath, 'r', encoding='utf-8') as testFile:
+            with open(predictPath, 'r', encoding='utf-8') as predFile:
+                reader = csv.reader(testFile, delimiter=',', quotechar='"')
+                reader.__next__()
+                for pred, test in zip(predFile, reader):
+                    predTuple = pred.strip('\n').split('\t')
+                    if predTuple[3] != 'UNKNOWN':
+                        assert predTuple[0] == test[0], str(pred) + str(test)
+                        assert predTuple[1] == test[1], str(pred) + str(test)
+                        assert predTuple[3] == test[2], str(pred) + str(test)
+        return 0
 
