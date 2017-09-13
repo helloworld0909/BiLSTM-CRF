@@ -19,6 +19,7 @@ class metricHistory(Callback):
     def on_epoch_end(self, epoch, logs={}):
         y_predict = self.model.predict(self.X_val)
         y_predict = y_predict.argmax(axis=-1)
-        metric = categorical_metric(self.y_val, y_predict, label2idx=self.params['label2idx'])
+        metric = categorical_metric(self.y_val, y_predict)
         self.metric_history.append(metric)
-        logging.info('{}\t{}\t{}'.format(*metric))
+        logging.info(str(metric))
+        self.model.save('h5/epoch{}_acc{}.h5'.format(epoch, metric))
