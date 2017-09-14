@@ -91,7 +91,7 @@ class BiLSTMCRF(object):
             name='char_embedding'
         )(char_input)
 
-        char = TimeDistributed(LSTM(10, return_sequences=False), name='charLSTM')(char)
+        char = TimeDistributed(LSTM(25, return_sequences=False), name='charLSTM')(char)
 
         merge_layer = concatenate([word, char])
 

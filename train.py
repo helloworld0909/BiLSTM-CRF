@@ -8,16 +8,18 @@ from util.data import Data
 from util.metric import categorical_metric
 from util.callback import metricHistory
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+    datefmt='%a, %d %b %Y %H:%M:%S',
+)
 
-# :: Logging level ::
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-inputPath = 'data/artist/artist.train'
+trainPath = 'data/normal/en_train_CoNLL.txt'
+testPath = 'data/normal/en_test_CoNLL.txt'
 
 
-data = Data(inputPathList=[inputPath])
-data.loadCoNLL(inputPath)
+data = Data(inputPathList=[trainPath], testPath=testPath)
+data.loadCoNLL(trainPath)
 
 X = data.sentences
 y = data.labels
@@ -30,10 +32,10 @@ model = modelWrapper.buildModel()
 history = metricHistory(X_test, y_test)
 history.set_model(model)
 history.set_params(params={'label2idx': data.label2idx})
-model.fit(X_train, y_train, epochs=20, batch_size=64, shuffle=True, callbacks=[history])
+model.fit(X_train, y_train, epochs=50, batch_size=64, shuffle=True, callbacks=[history])
 model.save('model.h5')
 
 y_predict = model.predict(X_test)
 y_predict = y_predict.argmax(axis=-1)
 
-print(categorical_metric(y_test, y_predict, label2idx=data.label2idx))
+print(categorical_metric(y_test, y_predict))
