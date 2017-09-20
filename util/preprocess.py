@@ -87,7 +87,7 @@ def selectPaddingLength(lengthDistribution, ratio=0.99):
     return selectedLength
 
 def loadWordEmbedding(filepath, dim=100):
-    word2vector = {'PADDING': np.zeros(dim), 'UNKNOWN': np.random.uniform(-0.25, 0.25, 100)}
+    word2vector = {'PADDING': np.zeros(dim), 'UNKNOWN': np.random.uniform(-0.25, 0.25, dim)}
     with open(filepath, 'r', encoding='utf-8') as embeddingFile:
         for line in embeddingFile:
             data_tuple = line.rstrip('\n').split(' ')
