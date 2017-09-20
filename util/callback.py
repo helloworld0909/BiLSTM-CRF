@@ -7,22 +7,24 @@ from util.metric import categorical_metric
 
 class metricHistory(Callback):
 
-    def __init__(self, X_val=None, y_val=None, save=True):
+    def __init__(self, X_val=None, y_val=None, saveDir=None, save=True):
         super(metricHistory, self).__init__()
         self.metric_history = []
         self.X_val = X_val
         self.y_val = y_val
         self.model = None
         self.params = {}
-        self.dir = 'h5/'
+        if saveDir is None:
+            dirName = time.strftime("%m-%d_%H:%M", time.localtime())
+            self.dir = 'h5/' + dirName + '/'
+        else:
+            self.dir = 'h5/' + saveDir + '/'
         self.save = save
 
     def set_params(self, params):
         self.params.update(params)
 
     def on_train_begin(self, logs=None):
-        dirName = time.strftime("%m-%d_%H:%M", time.localtime())
-        self.dir = self.dir + dirName + '/'
         os.mkdir(self.dir)
 
     def on_epoch_end(self, epoch, logs={}):

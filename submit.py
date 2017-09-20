@@ -9,10 +9,15 @@ logging.basicConfig(
     datefmt='%a, %d %b %Y %H:%M:%S',
 )
 
-trainPath = 'data/normal/en_train_CoNLL.txt'
+if len(sys.argv) >= 3:
+    dataIdx = '{:0>2}'.format(sys.argv[1])
+else:
+    dataIdx = 'CoNLL'
+
+trainPath = 'data/normal/en_train_{}.txt'.format(dataIdx)
 testPath = 'data/normal/en_test_CoNLL.txt'
 
 data = Data(inputPathList=[trainPath], testPath=testPath)
-model = load_model('h5/' + sys.argv[1])
+model = load_model('h5/' + dataIdx + '/' +  sys.argv[-1])
 
 data.predict(model, testPath='data/normal/en_test.csv', outputPath='en_test_enrich.txt')
