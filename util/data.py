@@ -16,6 +16,8 @@ class Data(object):
     label2idx = {'PADDING': 0}
     tokenIdx2charVector = []
     wordEmbedding = []
+    casing2idx = {}
+    tokenIdx2casingVector = []
 
     sentences = None
     labels = None
@@ -46,18 +48,36 @@ class Data(object):
 
         self.initToken2charVector()
         self.initWordEmbedding()
+        self.casing2idx = preprocess.getCasing2idx()
+        self.initTokenIdx2casingVector()
 
     def initToken2charVector(self):
         tokenIdx2charVector = []
         for token, idx in sorted(self.token2idx.items(), key=lambda kv: kv[1]):
-            if idx != 0:
+            if idx >= 2:
                 charVector = list(map(lambda c: self.char2idx.get(c, 1), token))    # 1 for UNKNOWN char
             else:
                 charVector = [0]  # PADDING
             tokenIdx2charVector.append(charVector)
 
-        self.tokenIdx2charVector = np.asarray(pad_sequences(tokenIdx2charVector, maxlen=self.maxTokenLen))
+        self.tokenIdx2charVector = np.asarray(pad_sequences(tokenIdx2charVector, maxlen=self.maxTokenLen, padding='post'))
         logging.debug(self.tokenIdx2charVector.shape)
+
+    def initTokenIdx2casingVector(self):
+        tokenIdx2casingVector = []
+        for token, idx in sorted(self.token2idx.items(), key=lambda kv: kv[1]):
+            casingVector = np.zeros(len(self.casing2idx))
+            if idx >= 2:
+                casingIdx = self.casing2idx[preprocess.getCasing(token)]
+                casingVector[casingIdx] = 1
+                tokenIdx2casingVector.append(casingVector)
+            elif idx == 1:
+                casingVector[0] = 1
+                tokenIdx2casingVector.append(casingVector)
+            else:
+                tokenIdx2casingVector.append(casingVector)
+        self.tokenIdx2casingVector = np.asarray(tokenIdx2casingVector)
+        logging.debug(self.tokenIdx2casingVector.shape)
 
     def initWordEmbedding(self, dim=100):
         """        

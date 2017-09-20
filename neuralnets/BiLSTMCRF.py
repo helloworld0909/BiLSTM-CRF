@@ -27,9 +27,11 @@ class BiLSTMCRF(object):
 
     charSet = []
     char2idx = {}
+    casing2idx = {}
 
     charEmbedding = []
     tokenIdx2charVector = []
+    tokenIdx2casingVector = []
     wordEmbedding = []
 
 
@@ -58,6 +60,8 @@ class BiLSTMCRF(object):
         self.maxSentenceLen = data.maxSentenceLen
         self.tokenIdx2charVector = data.tokenIdx2charVector
         self.wordEmbedding = data.wordEmbedding
+        self.casing2idx = data.casing2idx
+        self.tokenIdx2casingVector = data.tokenIdx2casingVector
 
     def buildModel(self):
 
@@ -72,6 +76,14 @@ class BiLSTMCRF(object):
             name='word_embedding'
         )(word_input_masking)
 
+        casing = Embedding(
+            input_dim=self.vocabSize,
+            output_dim=len(self.casing2idx),
+            input_length=self.maxSentenceLen,
+            weights=[self.tokenIdx2casingVector],
+            trainable=False,
+            name='casing_embedding'
+        )(word_input_masking)
 
         char_input = Embedding(
             input_dim=self.tokenIdx2charVector.shape[0],
@@ -93,7 +105,7 @@ class BiLSTMCRF(object):
 
         char = TimeDistributed(LSTM(25, return_sequences=False), name='charLSTM')(char)
 
-        merge_layer = concatenate([word, char])
+        merge_layer = concatenate([word, char, casing])
 
         bilstm = Bidirectional(LSTM(self.params['lstmOutDim'], return_sequences=True, dropout=0.25, recurrent_dropout=0.25), name='BiLSTM')(merge_layer)
 
