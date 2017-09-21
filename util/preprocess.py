@@ -1,5 +1,6 @@
 import os
 import logging
+import re
 from collections import defaultdict
 import numpy as np
 
@@ -97,7 +98,7 @@ def loadWordEmbedding(filepath, dim=100):
     return word2vector
 
 def getCasing2idx():
-    casingList = ['other', 'numeric', 'mainly_numeric', 'allLower', 'allUpper', 'initialUpper', 'contains_digit']
+    casingList = ['other', 'numeric', 'mainly_numeric', 'decimal', 'electronic', 'allUpper', 'initialUpper', 'contains_digit']
     return {v:k for k,v in enumerate(casingList)}
 
 def getCasing(word):
@@ -112,13 +113,16 @@ def getCasing(word):
             numDigits += 1
 
     digitFraction = numDigits / float(len(word))
+    decimalRe = re.compile(r"^-?\d*\.\d+$")
 
     if word.isdigit():  # Is a digit
         casing = 'numeric'
     elif digitFraction > 0.5:
         casing = 'mainly_numeric'
-    elif word.islower():  # All lower case
-        casing = 'allLower'
+    elif re.match(decimalRe, word):
+        casing = 'decimal'
+    elif word.startswith('http') or '://' in word or '.com' in word or '.htm' in word:
+        casing = 'electronic'
     elif word.isupper():  # All upper case
         casing = 'allUpper'
     elif word[0].isupper():  # is a title, initial char upper, then all lower
