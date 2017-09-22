@@ -25,7 +25,8 @@ class metricHistory(Callback):
         self.params.update(params)
 
     def on_train_begin(self, logs=None):
-        os.mkdir(self.dir)
+        if not os.path.exists(self.dir):
+            os.mkdir(self.dir)
 
     def on_epoch_end(self, epoch, logs={}):
         y_predict = self.model.predict(self.X_val)
