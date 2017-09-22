@@ -60,7 +60,7 @@ class Data(object):
                 charVector = [0]  # PADDING
             tokenIdx2charVector.append(charVector)
 
-        self.tokenIdx2charVector = np.asarray(pad_sequences(tokenIdx2charVector, maxlen=self.maxTokenLen, padding='post'))
+        self.tokenIdx2charVector = np.asarray(pad_sequences(tokenIdx2charVector, maxlen=self.maxTokenLen))
         logging.debug(self.tokenIdx2charVector.shape)
 
     def initTokenIdx2casingVector(self):
