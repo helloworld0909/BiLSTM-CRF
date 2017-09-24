@@ -25,22 +25,22 @@ testPath = 'data/normal/en_test_CoNLL.txt'
 
 
 data = Data(inputPathList=[trainPath], testPath=testPath)
-data.loadCoNLL(trainPath)
+return_data = data.loadCoNLL(trainPath, loadFeatures=True)
 
-X = data.sentences
-y = data.labels
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=0)
+split_data = train_test_split(*return_data, test_size=0.1, random_state=0)
+X_train = split_data[:-2:2]
+X_val = split_data[1:-2:2]
+y_train, y_val = split_data[-2:]
 
 modelWrapper = BiLSTMCRF(data)
-model = modelWrapper.buildModel()
+model = modelWrapper.buildModel(feature2idx=data.feature2idx)
 
-history = metricHistory(X_test, y_test, saveDir=dataIdx)
+history = metricHistory(X_val, y_val, saveDir=dataIdx)
 history.set_model(model)
 model.fit(X_train, y_train, epochs=50, batch_size=64, shuffle=True, callbacks=[history])
 model.save('model.h5')
 
-y_predict = model.predict(X_test)
+y_predict = model.predict(X_val)
 y_predict = y_predict.argmax(axis=-1)
 
-print(categorical_metric(y_test, y_predict))
+print(categorical_metric(y_val, y_predict))

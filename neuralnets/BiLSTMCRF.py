@@ -18,7 +18,7 @@ from util import preprocess
 
 class BiLSTMCRF(object):
 
-    params = {'wordEmbeddingDim': 100, 'charEmbeddingDim': 25, 'lstmOutDim': 100, 'filters': 15}
+    params = {'wordEmbeddingDim': 100, 'charEmbeddingDim': 25, 'lstmOutDim': 100, 'featureEmbeddingDim': 20}
 
     vocabSize = 0
     labelDim = 0
@@ -63,7 +63,7 @@ class BiLSTMCRF(object):
         self.casing2idx = data.casing2idx
         self.tokenIdx2casingVector = data.tokenIdx2casingVector
 
-    def buildModel(self):
+    def buildModel(self, feature2idx=None):
 
         word_input = Input((self.maxSentenceLen, ), name='word_input')
         word_input_masking = Masking(mask_value=0, input_shape=(self.maxSentenceLen, ))(word_input)
@@ -103,19 +103,37 @@ class BiLSTMCRF(object):
             name='char_embedding'
         )(char_input)
 
-        char = TimeDistributed(LSTM(25, return_sequences=False), name='charLSTM')(char)
+        char = TimeDistributed(Bidirectional(LSTM(25, return_sequences=False)), name='charLSTM')(char)
 
-        merge_layer = concatenate([word, char, casing])
+        defaultLayers = [word, char, casing]
+        inputLayers = [word_input]
 
-        bilstm = Bidirectional(LSTM(self.params['lstmOutDim'], return_sequences=True, dropout=0.25, recurrent_dropout=0.25), name='BiLSTM')(merge_layer)
+        if feature2idx is not None:
+            for featureIdx in feature2idx.values():
+                feature_input = Input((self.maxSentenceLen,))
+                feature = Embedding(
+                    input_dim=len(featureIdx),
+                    output_dim=self.params['featureEmbeddingDim'],
+                    trainable=True,
+                )(feature_input)
+                defaultLayers.append(feature)
+                inputLayers.append(feature_input)
 
-        hidden = TimeDistributed(Dense(self.labelDim, activation=None), name='hidden_layer')(bilstm)
+        merge_layer = concatenate(defaultLayers)
+
+        bilstm = Bidirectional(LSTM(self.params['lstmOutDim'], return_sequences=True, dropout=0.0, recurrent_dropout=0.0), name='BiLSTM')(merge_layer)
+
+        hidden = TimeDistributed(Dense(self.params['lstmOutDim'], activation='elu'), name='hidden_1')(bilstm)
+        hidden = TimeDistributed(Dense(self.params['lstmOutDim'], activation='elu'), name='hidden_2')(hidden)
+        hidden = TimeDistributed(Dense(self.params['lstmOutDim'], activation='elu'), name='hidden_3')(hidden)
+
+        hidden = TimeDistributed(Dense(self.labelDim, activation=None), name='hidden_layer')(hidden)
 
 
         crf = ChainCRF()
         output = crf(hidden)
 
-        model = Model(inputs=word_input, outputs=output)
+        model = Model(inputs=inputLayers, outputs=output)
         model.compile(optimizer='adam', loss=crf.sparse_loss)
         model.summary()
 

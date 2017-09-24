@@ -3,6 +3,7 @@ import logging
 import csv
 from collections import defaultdict
 import numpy as np
+from nltk.stem import WordNetLemmatizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils.np_utils import to_categorical
 
@@ -12,12 +13,14 @@ from util import preprocess
 class Data(object):
 
     token2idx = {'PADDING': 0, 'UNKNOWN': 1}
-    feature2idx = defaultdict(lambda : {'PADDING': 0})
+    feature2idx = defaultdict(lambda : {'PADDING': 0, 'UNKNOWN': 1})
     label2idx = {'PADDING': 0}
     tokenIdx2charVector = []
     wordEmbedding = []
     casing2idx = {}
     tokenIdx2casingVector = []
+
+    lemmatizer = WordNetLemmatizer()
 
     sentences = None
     labels = None
@@ -66,15 +69,15 @@ class Data(object):
     def initTokenIdx2casingVector(self):
         tokenIdx2casingVector = []
         for token, idx in sorted(self.token2idx.items(), key=lambda kv: kv[1]):
-            casingVector = np.zeros(len(self.casing2idx))
             if idx >= 2:
-                casingIdx = self.casing2idx[preprocess.getCasing(token)]
-                casingVector[casingIdx] = 1
+                casingVector = preprocess.getCasing(token)
                 tokenIdx2casingVector.append(casingVector)
             elif idx == 1:
+                casingVector = np.zeros(len(self.casing2idx))
                 casingVector[0] = 1
                 tokenIdx2casingVector.append(casingVector)
             else:
+                casingVector = np.zeros(len(self.casing2idx))
                 tokenIdx2casingVector.append(casingVector)
         self.tokenIdx2casingVector = np.asarray(tokenIdx2casingVector)
         logging.debug(self.tokenIdx2casingVector.shape)
@@ -83,23 +86,41 @@ class Data(object):
         """        
         The tokens in the word embedding matrix are uncased 
         """
+        notInPretrained = 0
+        foundLemmatized = 0
         word2vector = preprocess.loadWordEmbedding('data/glove.6B.100d.txt', dim=dim)
         for token, idx in sorted(self.token2idx.items(), key=lambda kv: kv[1]):
             if idx >= 2:
                 token = token.lower()
-            vector = word2vector.get(token, np.random.uniform(-0.25, 0.25, dim))
+            if token in word2vector:
+                vector = word2vector[token]
+            else:
+                token = self.lemmatizer.lemmatize(token)
+                if token in word2vector:
+                    vector = word2vector[token]
+                    foundLemmatized += 1
+                else:
+                    vector = np.random.uniform(-0.25, 0.25, dim)
+                    notInPretrained += 1
             self.wordEmbedding.append(vector)
+
         self.wordEmbedding = np.asarray(self.wordEmbedding)
+
+        logging.info('Tokens not in pretrained: {}'.format(notInPretrained))
+        logging.info('Lemmatized token in pretrained: {}'.format(foundLemmatized))
         logging.debug(self.wordEmbedding[0])
         logging.debug(self.wordEmbedding.shape)
 
 
 
-    def loadCoNLL(self, filePath):
+    def loadCoNLL(self, filePath, loadFeatures=False, mode='train'):
+        assert mode in ['train', 'test']
 
         sentences = [[]]
-        features = defaultdict(list) #TODO: load features
-        labels = [[]]
+        if loadFeatures:
+            features = defaultdict(lambda : [[]])
+        if mode == 'train':
+            labels = [[]]
 
         with open(filePath, 'r', encoding='utf-8') as inputFile:
 
@@ -107,7 +128,12 @@ class Data(object):
                 line = line.strip('\n')
                 if not line:
                     sentences.append([])
-                    labels.append([])
+                    if mode == 'train':
+                        labels.append([])
+
+                    if loadFeatures:
+                        for featureList in features.values():
+                            featureList.append([])
 
                 else:
                     data_tuple = line.split('\t')
@@ -116,16 +142,40 @@ class Data(object):
                     tokenIdx = self.token2idx.get(token, 1) # 1 for UNKNOWN
                     sentences[-1].append(tokenIdx)
 
-                    labelIdx = self.label2idx[data_tuple[-1]]
-                    labels[-1].append(labelIdx)
+                    if mode == 'train':
+                        labelIdx = self.label2idx[data_tuple[-1]]
+                        labels[-1].append(labelIdx)
 
-        # Pad sentence to the longest length
-        self.sentences = pad_sequences(sentences, maxlen=self.maxSentenceLen)
+                    if loadFeatures:
+                        if mode == 'train':
+                            featureTuple = data_tuple[1:-1]
+                        else:
+                            featureTuple = data_tuple[1:]
+                        for idx, feature in enumerate(featureTuple):
+                            featureIdx = self.feature2idx[idx].get(feature, 1)
+                            features[idx][-1].append(featureIdx)
+        if mode == 'train':
+            # Pad sentence to the longest length
+            sentences = pad_sequences(sentences, maxlen=self.maxSentenceLen)
 
-        del sentences
+            # Transform labels to one hot encoding
+            labels = np.expand_dims(pad_sequences(labels, maxlen=self.maxSentenceLen), -1)
 
-        # Transform labels to one hot encoding
-        self.labels = np.expand_dims(pad_sequences(labels, maxlen=self.maxSentenceLen), -1)
+            for idx in features:
+                features[idx] = pad_sequences(features[idx], maxlen=self.maxSentenceLen)
+
+        if loadFeatures:
+            return_data = [sentences]
+            for idx in range(len(features)):
+                return_data.append(features[idx])
+            if mode == 'train':
+                return_data.append(labels)
+            return return_data
+        else:
+            if mode == 'train':
+                return sentences, labels
+            elif mode == 'test':
+                return sentences
 
 
     def predict(self, model, testPath, outputPath):
@@ -185,6 +235,63 @@ class Data(object):
 
             x = sentence.flatten()
             y = y_predict.argmax(axis=-1).flatten()
+
+        return x, y
+
+    def predictWithFeature(self, model, X_test, outputPath):
+
+        logging.info('Begin predict...')
+
+        idx2token = {v: k for k,v in self.token2idx.items()}
+        idx2label = {v: k for k, v in self.label2idx.items()}
+        with open(outputPath, 'w', encoding='utf-8') as outputFile:
+
+            sentID = 0
+            for x_sent in zip(*X_test):
+
+                x, y = self.predictX(model, x_sent)
+                tokenID = 0
+
+                for tokenIdx, labelIdx in zip(x, y):
+                    if tokenIdx != 0:
+                        token = idx2token[tokenIdx]
+                        label = idx2label[labelIdx]
+                        outputFile.write('{}\t{}\t{}\t{}\n'.format(sentID, tokenID, label, token))
+                        tokenID += 1
+                sentID += 1
+        logging.info('Finish prediction')
+
+    def predictX(self, model, x_sent):
+
+        sentLen = len(x_sent[0])
+        maxLen = self.maxSentenceLen
+
+        x_parts = []
+        for i in range(len(x_sent)):
+            x_parts.append([])
+        if sentLen > maxLen:
+
+            for idx in range(sentLen // maxLen):
+                for i in range(len(x_sent)):
+                    x_parts[i].append(np.asarray(x_sent[i][idx * maxLen:(idx + 1) * maxLen]))
+            if sentLen % maxLen != 0:
+                for i in range(len(x_sent)):
+                    x_parts[i].append(np.asarray(x_sent[i][sentLen // maxLen * maxLen:]))
+
+            for i in range(len(x_sent)):
+                x_parts[i] = pad_sequences(x_parts[i], maxlen=maxLen)
+            y_parts = model.predict_on_batch(x_parts)
+
+            y = y_parts.argmax(axis=-1).flatten()
+
+        else:
+            for i in range(len(x_sent)):
+                x_parts[i] = pad_sequences([x_sent[i]], maxlen=maxLen)
+            y_predict = model.predict_on_batch(x_parts)
+
+            y = y_predict.argmax(axis=-1).flatten()
+
+        x = x_parts[0].flatten()
 
         return x, y
 

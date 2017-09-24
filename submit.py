@@ -18,6 +18,7 @@ trainPath = 'data/normal/en_train_{}.txt'.format(dataIdx)
 testPath = 'data/normal/en_test_CoNLL.txt'
 
 data = Data(inputPathList=[trainPath], testPath=testPath)
+X_test = data.loadCoNLL(testPath, loadFeatures=True, mode='test')
 model = load_model('h5/' + dataIdx + '/' +  sys.argv[-1])
 
-data.predict(model, testPath='data/normal/en_test.csv', outputPath='en_test_enrich.txt')
+data.predictWithFeature(model, X_test, 'en_test_enrich.txt')

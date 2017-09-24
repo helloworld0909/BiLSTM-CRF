@@ -54,7 +54,7 @@ def tokenFrequency(filePathList):
     return tokenFreq
 
 def featureLabelIndex(filePathList):
-    feature2idx = defaultdict(lambda : {'PADDING': 0})
+    feature2idx = defaultdict(lambda : {'PADDING': 0, 'UNKNOWN': 1})
     label2idx = {'PADDING': 0}
 
     for filePath in filePathList:
