@@ -98,36 +98,39 @@ def loadWordEmbedding(filepath, dim=100):
     return word2vector
 
 def getCasing2idx():
-    casingList = ['other', 'numeric', 'mainly_numeric', 'decimal', 'electronic', 'allUpper', 'initialUpper', 'contains_digit']
+    casingList = ['other', 'numeric', 'decimal', 'electronic', 'allUpper', 'containWhite', 'notAscii', 'veryLong', 'year']
     return {v:k for k,v in enumerate(casingList)}
 
 def getCasing(word):
     """Returns the casing for a word"""
-    casing = 'other'
-    if not word:
-        return casing
+    casing2idx = getCasing2idx()
 
-    numDigits = 0
-    for char in word:
-        if char.isdigit():
-            numDigits += 1
-
-    digitFraction = numDigits / float(len(word))
     decimalRe = re.compile(r"^-?\d*\.\d+$")
+    whiteRe = re.compile('\s+')
+    notAsciiRe = re.compile('[^\x00-\xff]')
+    yearRe = re.compile('^[1-2][0-9][0-9][0-9]s?$')
 
+    casingVector = np.zeros(len(casing2idx))
     if word.isdigit():  # Is a digit
-        casing = 'numeric'
-    elif digitFraction > 0.5:
-        casing = 'mainly_numeric'
-    elif re.match(decimalRe, word):
-        casing = 'decimal'
-    elif word.startswith('http') or '://' in word or '.com' in word or '.htm' in word:
-        casing = 'electronic'
-    elif word.isupper():  # All upper case
-        casing = 'allUpper'
-    elif word[0].isupper():  # is a title, initial char upper, then all lower
-        casing = 'initialUpper'
-    elif numDigits > 0:
-        casing = 'contains_digit'
+        casingVector[casing2idx['numeric']] = 1
+    if re.match(decimalRe, word):
+        casingVector[casing2idx['decimal']] = 1
+    if word.startswith('http') or '://' in word or '.com' in word or '.htm' in word:
+        casingVector[casing2idx['electronic']] = 1
+    if word.isupper():  # All upper case
+        casingVector[casing2idx['allUpper']] = 1
+    if re.search(whiteRe, word):
+        casingVector[casing2idx['containWhite']] = 1
+    if re.search(notAsciiRe, word):
+        casingVector[casing2idx['notAscii']] = 1
+    if len(word) > 18:
+        casingVector[casing2idx['veryLong']] = 1
+    if re.match(yearRe, word):
+        casingVector[casing2idx['year']] = 1
 
-    return casing
+
+
+    if casingVector.sum() == 0:
+        casingVector[casing2idx['other']] = 1
+
+    return casingVector
