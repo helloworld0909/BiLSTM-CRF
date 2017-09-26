@@ -121,7 +121,7 @@ class BiLSTMCRF(object):
 
         merge_layer = concatenate(defaultLayers)
 
-        bilstm = Bidirectional(LSTM(self.params['lstmOutDim'], return_sequences=True, dropout=0.0, recurrent_dropout=0.0), name='BiLSTM')(merge_layer)
+        bilstm = Bidirectional(LSTM(self.params['lstmOutDim'], return_sequences=True, dropout=0.2, recurrent_dropout=0.2), name='BiLSTM')(merge_layer)
 
         hidden = TimeDistributed(Dense(self.params['lstmOutDim'], activation='elu'), name='hidden_1')(bilstm)
         hidden = TimeDistributed(Dense(self.params['lstmOutDim'], activation='elu'), name='hidden_2')(hidden)

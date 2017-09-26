@@ -1,5 +1,6 @@
 import sys
 import logging
+import re
 from neuralnets.BiLSTMCRF import load_model
 from util.data import Data
 
@@ -21,4 +22,5 @@ data = Data(inputPathList=[trainPath], testPath=testPath)
 X_test = data.loadCoNLL(testPath, loadFeatures=True, mode='test')
 model = load_model('h5/' + dataIdx + '/' +  sys.argv[-1])
 
-data.predictWithFeature(model, X_test, 'en_test_enrich.txt')
+acc = float(re.search(r'acc([\d.]+)\d', sys.argv[-1]).group(1))
+data.predictWithFeature(model, X_test, '%s_enrich_%.5f.txt' %(dataIdx, acc))
